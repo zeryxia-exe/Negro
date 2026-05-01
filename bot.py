@@ -61,4 +61,4 @@ async def on_ready():
     await bot.tree.sync()
     print(f"✅ Bot connecté : {bot.user} ({bot.user.id})")
 
-bot.run(os.getenv("DISCORD_TOKEN"))
+bot.run ("MTQ5OTg2OTk2ODg5OTI0NDI1Mg.GP1nzM.oG93hgzxJbjEo19SZDdB-HN7VQFRfrwyfxc600")
