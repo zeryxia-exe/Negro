@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 CLIENT_ID = "1499869968899244252"
-REDIRECT_URI = "G2Z-Hx8fSOv8d_DsROLk0k-CZdFBrbA5"
+REDIRECT_URI = "ilikeapplesveirymuch.vercel.app"
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
