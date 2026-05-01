@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 CLIENT_ID = "1499869968899244252"
 CLIENT_SECRET = "G2Z-Hx8fSOv8d_DsROLk0k-CZdFBrbA5"
-REDIRECT_URI  = "negro-lemon.vercel.app"
+REDIRECT_URI  = "https://negro-lemon.vercel.app/callback"
 
 @app.route("/")
 def home():
