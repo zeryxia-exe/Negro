@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CLIENT_ID = os.getenv("CLIENT_ID")
-REDIRECT_URI = os.getenv("REDIRECT_URI")
+CLIENT_ID = "1499869968899244252"
+REDIRECT_URI = "G2Z-Hx8fSOv8d_DsROLk0k-CZdFBrbA5"
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
