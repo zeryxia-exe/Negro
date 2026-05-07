@@ -4,10 +4,10 @@ import json
 import urllib.request
 import urllib.parse
 
-DISCORD_BOT_TOKEN = "REMPLACE_PAR_TON_BOT_TOKEN"
-DISCORD_CLIENT_ID = "REMPLACE_PAR_TON_CLIENT_ID"
-DISCORD_CLIENT_SECRET = "REMPLACE_PAR_TON_CLIENT_SECRET"
-VERCEL_URL = "ton-bot.vercel.app"  # Sans https://
+DISCORD_BOT_TOKEN = "MTQ5OTg2OTk2ODg5OTI0NDI1Mg.G7voSN.bxlPQjGA-LfO1EhY8sDzeOfnQnWRmVvpfLOSTE"
+DISCORD_CLIENT_ID = "1499869968899244252"
+DISCORD_CLIENT_SECRET = "6LM5ZPmWcfdpqzB6Gz752-6uBdrOXbMR"
+VERCEL_URL = "negro-lemon.vercel.app"  # Sans https://
 
 
 def exchange_code(code: str) -> dict:
