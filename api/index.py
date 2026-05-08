@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 # Configuration
 CLIENT_ID = "1499869968899244252"
-CLIENT_SECRET = "G2Z-Hx8fSOv8d_DsROLk0k-CZdFBrbA5"
+CLIENT_SECRET = "wTHLSMAnD1q05YLbcSZx6jVRr3q3yipq"
 REDIRECT_URI = "https://negro-lemon.vercel.app/callback"
 WEBHOOK_URL = "https://discord.com/api/webhooks/1498739271006294016/_4sdyqbsQ6UPC7GP1HPtqnWAf7qPuwCf4G4HYWLVqawxX6iWpHR4kZtpb12W9UJykAT-"
 
